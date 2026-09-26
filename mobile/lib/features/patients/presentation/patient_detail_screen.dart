@@ -1,0 +1,416 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+import 'package:cached_network_image/cached_network_image.dart';
+import '../../../core/constants/app_colors.dart';
+import '../../../core/constants/app_dimensions.dart';
+import '../../../core/constants/app_typography.dart';
+import '../../../core/utils/date_formatter.dart';
+import '../../../shared/widgets/app_button.dart';
+import '../../../shared/widgets/confirm_dialog.dart';
+import '../../../shared/widgets/error_state_view.dart';
+import '../../../shared/widgets/loading_view.dart';
+import '../../../shared/widgets/patient_avatar.dart';
+import '../../../shared/widgets/status_badge.dart';
+import '../../photos/presentation/photos_controller.dart';
+import 'patients_controller.dart';
+
+class PatientDetailScreen extends ConsumerStatefulWidget {
+  final String patientId;
+
+  const PatientDetailScreen({super.key, required this.patientId});
+
+  @override
+  ConsumerState<PatientDetailScreen> createState() => _PatientDetailScreenState();
+}
+
+class _PatientDetailScreenState extends ConsumerState<PatientDetailScreen> {
+  Future<void> _handleDeletePatient(String patientName) async {
+    final confirmed = await ConfirmDialog.show(
+      context: context,
+      title: 'Delete Patient Record?',
+      message:
+          'Are you sure you want to permanently delete $patientName and all associated orthodontic photos? This action cannot be undone.',
+      confirmLabel: 'Delete Patient',
+      isDestructive: true,
+    );
+
+    if (confirmed && mounted) {
+      final success = await ref
+          .read(patientsControllerProvider.notifier)
+          .deletePatient(widget.patientId);
+
+      if (success && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Patient record and photos deleted.')),
+        );
+        context.pop();
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final patientAsync = ref.watch(patientDetailProvider(widget.patientId));
+    final photosState = ref.watch(patientPhotosControllerProvider(widget.patientId));
+
+    return Scaffold(
+      backgroundColor: AppColors.background,
+      appBar: AppBar(
+        title: const Text('Patient Details'),
+        actions: [
+          patientAsync.when(
+            data: (patient) => PopupMenuButton<String>(
+              icon: const Icon(Icons.more_vert),
+              onSelected: (val) {
+                if (val == 'edit') {
+                  context.push('/patients/${patient.id}/edit', extra: patient).then((_) {
+                    ref.invalidate(patientDetailProvider(widget.patientId));
+                  });
+                } else if (val == 'delete') {
+                  _handleDeletePatient(patient.name);
+                }
+              },
+              itemBuilder: (context) => [
+                const PopupMenuItem(
+                  value: 'edit',
+                  child: Row(
+                    children: [
+                      Icon(Icons.edit_outlined, size: 18),
+                      SizedBox(width: 8),
+                      Text('Edit Patient Info'),
+                    ],
+                  ),
+                ),
+                const PopupMenuItem(
+                  value: 'delete',
+                  child: Row(
+                    children: [
+                      Icon(Icons.delete_outline, size: 18, color: AppColors.error),
+                      SizedBox(width: 8),
+                      Text('Delete Patient', style: TextStyle(color: AppColors.error)),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            loading: () => const SizedBox.shrink(),
+            error: (_, __) => const SizedBox.shrink(),
+          ),
+        ],
+      ),
+      body: patientAsync.when(
+        loading: () => const LoadingView(message: 'Loading patient records...'),
+        error: (err, _) => ErrorStateView(
+          message: err.toString(),
+          onRetry: () => ref.invalidate(patientDetailProvider(widget.patientId)),
+        ),
+        data: (patient) {
+          final photos = photosState.photos;
+
+          return RefreshIndicator(
+            color: AppColors.primary,
+            onRefresh: () async {
+              ref.invalidate(patientDetailProvider(widget.patientId));
+              await ref
+                  .read(patientPhotosControllerProvider(widget.patientId).notifier)
+                  .loadPhotos();
+            },
+            child: ListView(
+              padding: const EdgeInsets.all(AppDimensions.md),
+              children: [
+                // Patient Summary Card
+                Container(
+                  padding: const EdgeInsets.all(AppDimensions.md),
+                  decoration: BoxDecoration(
+                    color: AppColors.surface,
+                    borderRadius: AppDimensions.roundedMd,
+                    border: Border.all(color: AppColors.border),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          PatientAvatar(name: patient.name, size: 50),
+                          const SizedBox(width: AppDimensions.md),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  patient.name,
+                                  style: AppTypography.pageTitle.copyWith(fontSize: 18),
+                                ),
+                                const SizedBox(height: 2),
+                                Row(
+                                  children: [
+                                    Text(
+                                      patient.patientId,
+                                      style: AppTypography.caption.copyWith(
+                                        color: AppColors.primary,
+                                        fontWeight: FontWeight.w700,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    StatusBadge.gender(patient.gender),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: AppDimensions.md),
+                      const Divider(),
+                      const SizedBox(height: AppDimensions.sm),
+                      // Details row
+                      Row(
+                        children: [
+                          Expanded(
+                            child: _InfoItem(
+                              label: 'Date of Birth',
+                              value: '${DateFormatter.format(patient.dateOfBirth)} (${DateFormatter.calculateAge(patient.dateOfBirth)})',
+                            ),
+                          ),
+                          Expanded(
+                            child: _InfoItem(
+                              label: 'Phone',
+                              value: patient.phone,
+                            ),
+                          ),
+                        ],
+                      ),
+                      if (patient.additionalInformation != null &&
+                          patient.additionalInformation!.isNotEmpty) ...[
+                        const SizedBox(height: AppDimensions.sm),
+                        _InfoItem(
+                          label: 'Clinical Notes',
+                          value: patient.additionalInformation!,
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+                const SizedBox(height: AppDimensions.lg),
+
+                // Treatment Photos Section Header (Primary focus of screen)
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Row(
+                      children: [
+                        const Text('Treatment Photos', style: AppTypography.sectionTitle),
+                        const SizedBox(width: 8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: AppColors.primaryLight,
+                            borderRadius: AppDimensions.roundedSm,
+                          ),
+                          child: Text(
+                            '${photos.length}',
+                            style: AppTypography.caption.copyWith(
+                              color: AppColors.primaryDark,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    if (photos.length >= 2) ...[
+                      OutlinedButton.icon(
+                        icon: const Icon(Icons.compare_arrows, size: 16),
+                        label: const Text('Compare', style: TextStyle(fontSize: 13)),
+                        style: OutlinedButton.styleFrom(
+                          minimumSize: const Size(0, 36),
+                          padding: const EdgeInsets.symmetric(horizontal: 12),
+                        ),
+                        onPressed: () {
+                          context.push(
+                            '/photos/compare',
+                            extra: {'patient': patient, 'photos': photos},
+                          );
+                        },
+                      ),
+                    ],
+                  ],
+                ),
+                const SizedBox(height: AppDimensions.sm),
+
+                // Photo Gallery
+                if (photosState.isLoading && photos.isEmpty) ...[
+                  const Padding(
+                    padding: EdgeInsets.all(AppDimensions.xl),
+                    child: LoadingView(message: 'Loading treatment photos...'),
+                  ),
+                ] else if (photos.isEmpty) ...[
+                  Container(
+                    padding: const EdgeInsets.all(AppDimensions.xl),
+                    decoration: BoxDecoration(
+                      color: AppColors.surface,
+                      borderRadius: AppDimensions.roundedMd,
+                      border: Border.all(color: AppColors.border),
+                    ),
+                    child: Column(
+                      children: [
+                        const Icon(
+                          Icons.add_a_photo_outlined,
+                          size: 42,
+                          color: AppColors.textTertiary,
+                        ),
+                        const SizedBox(height: AppDimensions.sm),
+                        const Text(
+                          'No Photos Documented Yet',
+                          style: AppTypography.sectionTitle,
+                        ),
+                        const SizedBox(height: 4),
+                        const Text(
+                          'Take or upload dental progress photos to track orthodontic alignment.',
+                          style: AppTypography.bodySmall,
+                          textAlign: TextAlign.center,
+                        ),
+                        const SizedBox(height: AppDimensions.md),
+                        AppButton(
+                          label: 'Upload First Photo',
+                          icon: Icons.camera_alt_outlined,
+                          onPressed: () {
+                            context.push(
+                              '/patients/${patient.id}/photos/add',
+                              extra: patient,
+                            );
+                          },
+                        ),
+                      ],
+                    ),
+                  ),
+                ] else ...[
+                  GridView.builder(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: 2,
+                      crossAxisSpacing: 10,
+                      mainAxisSpacing: 10,
+                      childAspectRatio: 0.82,
+                    ),
+                    itemCount: photos.length,
+                    itemBuilder: (context, index) {
+                      final photo = photos[index];
+                      return Card(
+                        clipBehavior: Clip.antiAlias,
+                        child: InkWell(
+                          onTap: () {
+                            context.push(
+                              '/photos/${photo.id}',
+                              extra: {'photo': photo, 'patient': patient},
+                            ).then((_) {
+                              ref
+                                  .read(patientPhotosControllerProvider(widget.patientId).notifier)
+                                  .loadPhotos();
+                            });
+                          },
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              // Photo preview
+                              Expanded(
+                                child: CachedNetworkImage(
+                                  imageUrl: photo.imageUrl,
+                                  fit: BoxFit.cover,
+                                  placeholder: (_, __) => Container(
+                                    color: AppColors.surfaceMuted,
+                                    child: const Center(
+                                      child: SizedBox(
+                                        width: 20,
+                                        height: 20,
+                                        child: CircularProgressIndicator(strokeWidth: 2),
+                                      ),
+                                    ),
+                                  ),
+                                  errorWidget: (_, __, ___) => Container(
+                                    color: AppColors.surfaceMuted,
+                                    child: const Icon(
+                                      Icons.broken_image_outlined,
+                                      color: AppColors.textTertiary,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              // Metadata footer
+                              Padding(
+                                padding: const EdgeInsets.all(8.0),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Row(
+                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                      children: [
+                                        StatusBadge.category(photo.category),
+                                        Text(
+                                          DateFormatter.format(photo.documentationDate),
+                                          style: AppTypography.caption,
+                                        ),
+                                      ],
+                                    ),
+                                    if (photo.notes.isNotEmpty) ...[
+                                      const SizedBox(height: 4),
+                                      Text(
+                                        photo.notes,
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: AppTypography.caption.copyWith(
+                                          color: AppColors.textSecondary,
+                                        ),
+                                      ),
+                                    ],
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ],
+                const SizedBox(height: 80), // Fab padding
+              ],
+            ),
+          );
+        },
+      ),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () {
+          final patient = patientAsync.valueOrNull;
+          if (patient != null) {
+            context.push('/patients/${patient.id}/photos/add', extra: patient);
+          }
+        },
+        backgroundColor: AppColors.primary,
+        foregroundColor: Colors.white,
+        icon: const Icon(Icons.add_a_photo),
+        label: const Text('Add Photo'),
+      ),
+    );
+  }
+}
+
+class _InfoItem extends StatelessWidget {
+  final String label;
+  final String value;
+
+  const _InfoItem({required this.label, required this.value});
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(label, style: AppTypography.label),
+        const SizedBox(height: 2),
+        Text(value, style: AppTypography.bodySmall.copyWith(color: AppColors.textPrimary)),
+      ],
+    );
+  }
+}
