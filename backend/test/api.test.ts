@@ -1,20 +1,17 @@
-import { createApp } from '../src/app.js';
-import { connectDatabase, disconnectDatabase } from '../src/config/db.js';
-import { Dentist } from '../src/models/Dentist.js';
-import { Patient } from '../src/models/Patient.js';
-import { Photo } from '../src/models/Photo.js';
+import mongoose from 'mongoose';
+import { MongoMemoryServer } from 'mongodb-memory-server';
 import http from 'http';
+import { createApp } from '../src/app.js';
+
+let mongod: MongoMemoryServer | null = null;
 
 async function runTests() {
   console.log('--- Starting Dental Progress Backend Automated Tests ---');
 
-  // Connect to DB
-  await connectDatabase();
-
-  // Clear previous test collections
-  await Dentist.deleteMany({});
-  await Patient.deleteMany({});
-  await Photo.deleteMany({});
+  // Start dedicated In-Memory MongoDB for isolated testing
+  mongod = await MongoMemoryServer.create();
+  const testUri = mongod.getUri();
+  await mongoose.connect(testUri);
 
   const app = createApp();
   const server = http.createServer(app);
@@ -271,7 +268,10 @@ async function runTests() {
     console.log('======================================================\n');
   } finally {
     server.close();
-    await disconnectDatabase();
+    await mongoose.disconnect();
+    if (mongod) {
+      await mongod.stop();
+    }
   }
 }
 

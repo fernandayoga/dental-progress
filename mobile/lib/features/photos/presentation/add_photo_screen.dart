@@ -5,11 +5,11 @@ import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_dimensions.dart';
-import '../../../core/constants/app_typography.dart';
 import '../../../core/utils/date_formatter.dart';
 import '../../../core/utils/validators.dart';
 import '../../../shared/widgets/app_button.dart';
 import '../../../shared/widgets/app_text_field.dart';
+import '../../../shared/widgets/patient_avatar.dart';
 import '../../patients/domain/patient_model.dart';
 import 'photos_controller.dart';
 
@@ -161,11 +161,14 @@ class _AddPhotoScreenState extends ConsumerState<AddPhotoScreen> {
         title: const Text('Add Progress Photo'),
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(AppDimensions.md),
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppDimensions.md,
+          vertical: AppDimensions.md,
+        ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            // Patient Identification Header
+            // Patient Identification Context Banner
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
               decoration: BoxDecoration(
@@ -175,12 +178,21 @@ class _AddPhotoScreenState extends ConsumerState<AddPhotoScreen> {
               ),
               child: Row(
                 children: [
-                  const Icon(Icons.person_outline, size: 20, color: AppColors.primary),
-                  const SizedBox(width: 8),
+                  PatientAvatar(name: widget.patient.name, size: 36),
+                  const SizedBox(width: 12),
                   Expanded(
-                    child: Text(
-                      'Patient: ${widget.patient.name} (${widget.patient.patientId})',
-                      style: AppTypography.bodyMedium.copyWith(fontWeight: FontWeight.w600),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          widget.patient.name,
+                          style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: AppColors.textPrimary),
+                        ),
+                        Text(
+                          'Patient ID: ${widget.patient.patientId}',
+                          style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: AppColors.primary),
+                        ),
+                      ],
                     ),
                   ),
                 ],
@@ -188,35 +200,42 @@ class _AddPhotoScreenState extends ConsumerState<AddPhotoScreen> {
             ),
             const SizedBox(height: AppDimensions.md),
 
-            // Image Capture / Picker Area
+            // HERO: Image-First Capture / Preview Viewport
             if (_fileBytes == null) ...[
               Container(
-                height: 220,
+                height: 230,
                 decoration: BoxDecoration(
                   color: AppColors.surface,
                   borderRadius: AppDimensions.roundedMd,
                   border: Border.all(
-                    color: AppColors.border,
-                    style: BorderStyle.solid,
+                    color: AppColors.primary.withValues(alpha: 0.3),
+                    width: 1.5,
                   ),
                 ),
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    const Icon(
-                      Icons.add_photo_alternate_outlined,
-                      size: 48,
-                      color: AppColors.textSecondary,
+                    Container(
+                      padding: const EdgeInsets.all(14),
+                      decoration: BoxDecoration(
+                        color: AppColors.primaryLight,
+                        borderRadius: AppDimensions.roundedSm,
+                      ),
+                      child: const Icon(
+                        Icons.add_a_photo_rounded,
+                        size: 30,
+                        color: AppColors.primary,
+                      ),
                     ),
                     const SizedBox(height: AppDimensions.sm),
                     const Text(
-                      'Select Dental Clinical Photo',
-                      style: AppTypography.sectionTitle,
+                      'Capture or Upload Dental Photo',
+                      style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: AppColors.textPrimary),
                     ),
-                    const SizedBox(height: 4),
+                    const SizedBox(height: 3),
                     const Text(
-                      'Supports JPG, PNG, WEBP (up to 10MB)',
-                      style: AppTypography.caption,
+                      'High-resolution clinical alignment photo',
+                      style: TextStyle(fontSize: 11, color: AppColors.textSecondary),
                     ),
                     const SizedBox(height: AppDimensions.md),
                     Row(
@@ -224,14 +243,14 @@ class _AddPhotoScreenState extends ConsumerState<AddPhotoScreen> {
                       children: [
                         AppButton(
                           label: 'Camera',
-                          icon: Icons.camera_alt_outlined,
+                          icon: Icons.camera_alt_rounded,
                           variant: AppButtonVariant.primary,
                           onPressed: () => _pickImage(ImageSource.camera),
                         ),
                         const SizedBox(width: AppDimensions.md),
                         AppButton(
                           label: 'Gallery',
-                          icon: Icons.photo_library_outlined,
+                          icon: Icons.photo_library_rounded,
                           variant: AppButtonVariant.secondary,
                           onPressed: () => _pickImage(ImageSource.gallery),
                         ),
@@ -241,9 +260,9 @@ class _AddPhotoScreenState extends ConsumerState<AddPhotoScreen> {
                 ),
               ),
             ] else ...[
-              // Image Preview Card
+              // Image Preview Viewport (Visual Hero)
               Container(
-                height: 260,
+                height: 270,
                 clipBehavior: Clip.antiAlias,
                 decoration: BoxDecoration(
                   color: Colors.black,
@@ -255,23 +274,23 @@ class _AddPhotoScreenState extends ConsumerState<AddPhotoScreen> {
                   children: [
                     Image.memory(_fileBytes!, fit: BoxFit.contain),
                     Positioned(
-                      top: 8,
-                      right: 8,
+                      top: 10,
+                      right: 10,
                       child: Container(
                         decoration: BoxDecoration(
-                          color: Colors.black.withValues(alpha: 0.6),
+                          color: Colors.black.withValues(alpha: 0.7),
                           borderRadius: AppDimensions.roundedSm,
                         ),
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             IconButton(
-                              icon: const Icon(Icons.refresh, color: Colors.white, size: 20),
-                              tooltip: 'Retake / Choose Another',
+                              icon: const Icon(Icons.refresh_rounded, color: Colors.white, size: 18),
+                              tooltip: 'Retake',
                               onPressed: () => _pickImage(ImageSource.gallery),
                             ),
                             IconButton(
-                              icon: const Icon(Icons.close, color: Colors.white, size: 20),
+                              icon: const Icon(Icons.close_rounded, color: Colors.white, size: 18),
                               tooltip: 'Remove',
                               onPressed: () {
                                 setState(() {
@@ -290,83 +309,89 @@ class _AddPhotoScreenState extends ConsumerState<AddPhotoScreen> {
             ],
             const SizedBox(height: AppDimensions.md),
 
-            // Documentation Date Picker
+            // Photo Metadata & Observations Container
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+              padding: const EdgeInsets.all(AppDimensions.md),
               decoration: BoxDecoration(
                 color: AppColors.surface,
                 borderRadius: AppDimensions.roundedMd,
                 border: Border.all(color: AppColors.border),
               ),
-              child: Row(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Icon(Icons.calendar_month_outlined, size: 20, color: AppColors.primary),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text('Date of Documentation', style: AppTypography.label),
-                        const SizedBox(height: 2),
-                        Text(
-                          DateFormatter.format(_documentationDate),
-                          style: AppTypography.bodyMedium.copyWith(fontWeight: FontWeight.w600),
-                        ),
-                      ],
-                    ),
+                  // Documentation Date Row
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text('DOCUMENTATION DATE', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: AppColors.textSecondary, letterSpacing: 0.5)),
+                          const SizedBox(height: 3),
+                          Text(
+                            DateFormatter.format(_documentationDate),
+                            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: AppColors.textPrimary),
+                          ),
+                        ],
+                      ),
+                      TextButton.icon(
+                        icon: const Icon(Icons.calendar_month_outlined, size: 16),
+                        label: const Text('Change Date'),
+                        onPressed: _pickDocumentationDate,
+                      ),
+                    ],
                   ),
-                  TextButton(
-                    onPressed: _pickDocumentationDate,
-                    child: const Text('Change Date'),
+                  const SizedBox(height: AppDimensions.md),
+                  const Divider(height: 1),
+                  const SizedBox(height: AppDimensions.md),
+
+                  // Photo Category Chips
+                  const Text('PHOTO CATEGORY *', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: AppColors.textSecondary, letterSpacing: 0.5)),
+                  const SizedBox(height: AppDimensions.xs + 2),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: _categories.map((cat) {
+                      final isSelected = _selectedCategory == cat;
+                      return ChoiceChip(
+                        label: Text(cat),
+                        selected: isSelected,
+                        onSelected: (selected) {
+                          if (selected) {
+                            setState(() => _selectedCategory = cat);
+                          }
+                        },
+                        selectedColor: AppColors.primaryLight,
+                        backgroundColor: AppColors.surfaceMuted,
+                        labelStyle: TextStyle(
+                          color: isSelected ? AppColors.primaryDark : AppColors.textSecondary,
+                          fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                          fontSize: 11,
+                        ),
+                        side: BorderSide(
+                          color: isSelected ? AppColors.primary : AppColors.border,
+                        ),
+                      );
+                    }).toList(),
+                  ),
+                  const SizedBox(height: AppDimensions.md),
+
+                  // Clinical Notes
+                  AppTextField(
+                    label: 'Clinical Observation Notes (Optional)',
+                    hint: 'e.g. Incisor alignment progress, aligner stage 5 check, rotation corrected...',
+                    controller: _notesController,
+                    maxLines: 4,
+                    maxLength: 1000,
+                    validator: Validators.note,
                   ),
                 ],
               ),
             ),
-            const SizedBox(height: AppDimensions.md),
-
-            // Category Chips Selector
-            const Text('Photo Category', style: AppTypography.label),
-            const SizedBox(height: AppDimensions.xs + 2),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: _categories.map((cat) {
-                final isSelected = _selectedCategory == cat;
-                return ChoiceChip(
-                  label: Text(cat),
-                  selected: isSelected,
-                  onSelected: (selected) {
-                    if (selected) {
-                      setState(() => _selectedCategory = cat);
-                    }
-                  },
-                  selectedColor: AppColors.primaryLight,
-                  backgroundColor: AppColors.surface,
-                  labelStyle: TextStyle(
-                    color: isSelected ? AppColors.primary : AppColors.textSecondary,
-                    fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
-                    fontSize: 12,
-                  ),
-                  side: BorderSide(
-                    color: isSelected ? AppColors.primary : AppColors.border,
-                  ),
-                );
-              }).toList(),
-            ),
-            const SizedBox(height: AppDimensions.md),
-
-            // Clinical Notes Field
-            AppTextField(
-              label: 'Clinical Notes (Optional)',
-              hint: 'e.g. Incisor leveling progress, aligner stage 5 check, rotation corrected...',
-              controller: _notesController,
-              maxLines: 4,
-              maxLength: 1000,
-              validator: Validators.note,
-            ),
             const SizedBox(height: AppDimensions.lg),
 
-            // Upload / Cancel Buttons
+            // Action Buttons
             Row(
               children: [
                 Expanded(
@@ -388,6 +413,7 @@ class _AddPhotoScreenState extends ConsumerState<AddPhotoScreen> {
                 ),
               ],
             ),
+            const SizedBox(height: AppDimensions.lg),
           ],
         ),
       ),

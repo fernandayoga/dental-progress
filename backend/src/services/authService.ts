@@ -42,24 +42,31 @@ export class AuthService {
   }
 
   /**
-   * Seeds an initial dentist account if database has no dentists
+   * Seeds or verifies the initial default dentist account
    */
   async seedInitialDentist(): Promise<void> {
-    const count = await Dentist.countDocuments();
-    if (count === 0) {
-      const defaultEmail = 'dentist@dentalprogress.com';
-      const defaultPassword = 'password123';
-      const passwordHash = await this.hashPassword(defaultPassword);
+    const defaultEmail = 'dentist@dentalprogress.com';
+    const defaultPassword = 'password123';
 
-      await Dentist.create({
+    let dentist = await Dentist.findOne({ email: defaultEmail });
+    if (!dentist) {
+      const passwordHash = await this.hashPassword(defaultPassword);
+      dentist = await Dentist.create({
         name: 'Dr. Sarah Jenkins, DDS',
         email: defaultEmail,
         passwordHash,
       });
-
       logger.info('Created default dentist account:');
       logger.info(`  Email: ${defaultEmail}`);
       logger.info(`  Password: ${defaultPassword}`);
+    } else {
+      // Ensure password hash matches defaultPassword
+      const isMatch = await this.comparePassword(defaultPassword, dentist.passwordHash);
+      if (!isMatch) {
+        dentist.passwordHash = await this.hashPassword(defaultPassword);
+        await dentist.save();
+        logger.info(`Reset password for default dentist ${defaultEmail}`);
+      }
     }
   }
 }

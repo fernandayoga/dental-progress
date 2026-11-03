@@ -127,7 +127,6 @@ class _AddEditPatientScreenState extends ConsumerState<AddEditPatientScreen> {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text('Patient ${newPatient.name} registered (${newPatient.patientId})')),
           );
-          // Navigate directly to the newly registered patient's detail screen
           context.pushReplacement('/patients/${newPatient.id}');
         }
       }
@@ -152,147 +151,153 @@ class _AddEditPatientScreenState extends ConsumerState<AddEditPatientScreen> {
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: Text(_isEditing ? 'Edit Patient' : 'Add New Patient'),
+        title: Text(_isEditing ? 'Edit Patient Record' : 'Register Patient'),
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(AppDimensions.md),
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppDimensions.md,
+          vertical: AppDimensions.md,
+        ),
         child: Form(
           key: _formKey,
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              // Notice / Patient ID display
-              if (_isEditing) ...[
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                  decoration: BoxDecoration(
-                    color: AppColors.primaryLight,
-                    borderRadius: AppDimensions.roundedSm,
-                  ),
-                  child: Row(
-                    children: [
-                      const Icon(Icons.badge_outlined, size: 18, color: AppColors.primary),
-                      const SizedBox(width: 8),
-                      Text(
-                        'Patient ID: ${widget.initialPatient!.patientId}',
-                        style: AppTypography.label.copyWith(
-                          color: AppColors.primaryDark,
-                          fontWeight: FontWeight.w700,
+              // Single cohesive Swiss Form Container
+              Container(
+                padding: const EdgeInsets.all(AppDimensions.lg),
+                decoration: BoxDecoration(
+                  color: AppColors.surface,
+                  borderRadius: AppDimensions.roundedMd,
+                  border: Border.all(color: AppColors.border),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Header Subtitle
+                    Text(
+                      _isEditing
+                          ? 'Editing record for ${widget.initialPatient!.patientId}'
+                          : 'Enter demographic and clinical details to register a new orthodontic patient.',
+                      style: const TextStyle(fontSize: 12, color: AppColors.textSecondary, height: 1.35),
+                    ),
+                    const SizedBox(height: AppDimensions.lg),
+
+                    // SECTION 1: PERSONAL INFORMATION
+                    const Text(
+                      'PERSONAL INFORMATION',
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.primary,
+                        letterSpacing: 0.6,
+                      ),
+                    ),
+                    const SizedBox(height: AppDimensions.md),
+
+                    // Full Name
+                    AppTextField(
+                      label: 'Full Name',
+                      hint: 'e.g. Eleanor Vance',
+                      controller: _nameController,
+                      validator: (val) => Validators.required(val, 'Patient name'),
+                      isRequired: true,
+                      prefixIcon: const Icon(Icons.person_outline_rounded, size: 18, color: AppColors.textSecondary),
+                    ),
+                    const SizedBox(height: AppDimensions.md),
+
+                    // Date of Birth
+                    AppTextField(
+                      label: 'Date of Birth',
+                      hint: 'Select date of birth',
+                      controller: _dobController,
+                      readOnly: true,
+                      onTap: _pickDateOfBirth,
+                      validator: (val) => Validators.required(val, 'Date of birth'),
+                      isRequired: true,
+                      prefixIcon: const Icon(Icons.cake_outlined, size: 18, color: AppColors.textSecondary),
+                      suffixIcon: IconButton(
+                        icon: const Icon(Icons.calendar_month_outlined, size: 18, color: AppColors.primary),
+                        onPressed: _pickDateOfBirth,
+                      ),
+                    ),
+                    const SizedBox(height: AppDimensions.md),
+
+                    // Gender Selector
+                    const Text('Gender *', style: AppTypography.label),
+                    const SizedBox(height: AppDimensions.xs + 2),
+                    SegmentedButton<String>(
+                      segments: const [
+                        ButtonSegment(value: 'Male', label: Text('Male')),
+                        ButtonSegment(value: 'Female', label: Text('Female')),
+                        ButtonSegment(value: 'Other', label: Text('Other')),
+                      ],
+                      selected: {_selectedGender},
+                      onSelectionChanged: (Set<String> newSelection) {
+                        setState(() {
+                          _selectedGender = newSelection.first;
+                        });
+                      },
+                      style: ButtonStyle(
+                        backgroundColor: WidgetStateProperty.resolveWith<Color?>(
+                          (states) {
+                            if (states.contains(WidgetState.selected)) {
+                              return AppColors.primaryLight;
+                            }
+                            return AppColors.surface;
+                          },
+                        ),
+                        foregroundColor: WidgetStateProperty.resolveWith<Color?>(
+                          (states) {
+                            if (states.contains(WidgetState.selected)) {
+                              return AppColors.primaryDark;
+                            }
+                            return AppColors.textSecondary;
+                          },
                         ),
                       ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: AppDimensions.md),
-              ] else ...[
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                  decoration: BoxDecoration(
-                    color: AppColors.surfaceMuted,
-                    borderRadius: AppDimensions.roundedSm,
-                  ),
-                  child: Row(
-                    children: [
-                      const Icon(Icons.auto_awesome, size: 16, color: AppColors.textSecondary),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          'A unique Patient ID (e.g. DP-2026-0001) will be generated automatically.',
-                          style: AppTypography.caption.copyWith(color: AppColors.textSecondary),
-                        ),
+                    ),
+                    const SizedBox(height: AppDimensions.lg),
+                    const Divider(height: 1),
+                    const SizedBox(height: AppDimensions.lg),
+
+                    // SECTION 2: CONTACT & CLINICAL RECORD
+                    const Text(
+                      'CONTACT & CLINICAL OBSERVATIONS',
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.primary,
+                        letterSpacing: 0.6,
                       ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: AppDimensions.md),
-              ],
+                    ),
+                    const SizedBox(height: AppDimensions.md),
 
-              // Full Name
-              AppTextField(
-                label: 'Full Name',
-                hint: 'e.g. Eleanor Vance',
-                controller: _nameController,
-                validator: (val) => Validators.required(val, 'Patient name'),
-                isRequired: true,
-                prefixIcon: const Icon(Icons.person_outline, size: 20, color: AppColors.textSecondary),
-              ),
-              const SizedBox(height: AppDimensions.md),
+                    // Phone Number
+                    AppTextField(
+                      label: 'Phone Number',
+                      hint: 'e.g. +1 555-019-2834',
+                      controller: _phoneController,
+                      keyboardType: TextInputType.phone,
+                      validator: Validators.phone,
+                      isRequired: true,
+                      prefixIcon: const Icon(Icons.phone_outlined, size: 18, color: AppColors.textSecondary),
+                    ),
+                    const SizedBox(height: AppDimensions.md),
 
-              // Date of Birth
-              AppTextField(
-                label: 'Date of Birth',
-                hint: 'Select birth date',
-                controller: _dobController,
-                readOnly: true,
-                onTap: _pickDateOfBirth,
-                validator: (val) => Validators.required(val, 'Date of birth'),
-                isRequired: true,
-                prefixIcon: const Icon(Icons.cake_outlined, size: 20, color: AppColors.textSecondary),
-                suffixIcon: IconButton(
-                  icon: const Icon(Icons.calendar_month_outlined, size: 20, color: AppColors.primary),
-                  onPressed: _pickDateOfBirth,
+                    // Optional Notes
+                    AppTextField(
+                      label: 'Clinical Notes / Diagnosis (Optional)',
+                      hint: 'e.g. Malocclusion Class II, anterior crowding, crossbite notes...',
+                      controller: _additionalInfoController,
+                      maxLines: 4,
+                      maxLength: 1000,
+                      validator: Validators.note,
+                    ),
+                  ],
                 ),
               ),
-              const SizedBox(height: AppDimensions.md),
-
-              // Gender Selector
-              const Text('Gender *', style: AppTypography.label),
-              const SizedBox(height: AppDimensions.xs + 2),
-              SegmentedButton<String>(
-                segments: const [
-                  ButtonSegment(value: 'Male', label: Text('Male')),
-                  ButtonSegment(value: 'Female', label: Text('Female')),
-                  ButtonSegment(value: 'Other', label: Text('Other')),
-                ],
-                selected: {_selectedGender},
-                onSelectionChanged: (Set<String> newSelection) {
-                  setState(() {
-                    _selectedGender = newSelection.first;
-                  });
-                },
-                style: ButtonStyle(
-                  backgroundColor: WidgetStateProperty.resolveWith<Color?>(
-                    (states) {
-                      if (states.contains(WidgetState.selected)) {
-                        return AppColors.primaryLight;
-                      }
-                      return AppColors.surface;
-                    },
-                  ),
-                  foregroundColor: WidgetStateProperty.resolveWith<Color?>(
-                    (states) {
-                      if (states.contains(WidgetState.selected)) {
-                        return AppColors.primary;
-                      }
-                      return AppColors.textSecondary;
-                    },
-                  ),
-                ),
-              ),
-              const SizedBox(height: AppDimensions.md),
-
-              // Phone Number
-              AppTextField(
-                label: 'Phone Number',
-                hint: 'e.g. +1 555-019-2834',
-                controller: _phoneController,
-                keyboardType: TextInputType.phone,
-                validator: Validators.phone,
-                isRequired: true,
-                prefixIcon: const Icon(Icons.phone_outlined, size: 20, color: AppColors.textSecondary),
-              ),
-              const SizedBox(height: AppDimensions.md),
-
-              // Optional Additional Clinical Information
-              AppTextField(
-                label: 'Clinical Notes / Additional Information (Optional)',
-                hint: 'e.g. Malocclusion Class II, deep bite, crowding in upper anterior segment...',
-                controller: _additionalInfoController,
-                maxLines: 4,
-                maxLength: 1000,
-                validator: Validators.note,
-              ),
-              const SizedBox(height: AppDimensions.xl),
+              const SizedBox(height: AppDimensions.lg),
 
               // Form Actions
               Row(
@@ -311,11 +316,12 @@ class _AddEditPatientScreenState extends ConsumerState<AddEditPatientScreen> {
                       variant: AppButtonVariant.primary,
                       isLoading: _isSaving,
                       onPressed: _savePatient,
-                      icon: _isEditing ? Icons.check : Icons.person_add_outlined,
+                      icon: _isEditing ? Icons.check_rounded : Icons.person_add_rounded,
                     ),
                   ),
                 ],
               ),
+              const SizedBox(height: AppDimensions.lg),
             ],
           ),
         ),

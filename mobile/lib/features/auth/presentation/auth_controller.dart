@@ -81,8 +81,13 @@ class AuthController extends StateNotifier<AuthState> {
   }
 
   Future<void> logout() async {
-    await _repository.logout();
-    state = const AuthState(status: AuthStatus.unauthenticated);
+    try {
+      await _repository.logout();
+    } catch (_) {
+      // Ignore errors when deleting token
+    } finally {
+      state = const AuthState(status: AuthStatus.unauthenticated);
+    }
   }
 }
 

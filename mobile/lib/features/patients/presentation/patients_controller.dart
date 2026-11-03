@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/errors/app_exception.dart';
+import '../../auth/presentation/auth_controller.dart';
 import '../data/patient_repository.dart';
 import '../domain/patient_model.dart';
 
@@ -34,8 +35,10 @@ class PatientsState {
 class PatientsController extends StateNotifier<PatientsState> {
   final PatientRepository _repository;
 
-  PatientsController(this._repository) : super(const PatientsState()) {
-    loadPatients();
+  PatientsController(this._repository) : super(const PatientsState());
+
+  void reset() {
+    state = const PatientsState();
   }
 
   Future<void> loadPatients({String? query}) async {
@@ -124,7 +127,14 @@ class PatientsController extends StateNotifier<PatientsState> {
 final patientsControllerProvider =
     StateNotifierProvider<PatientsController, PatientsState>((ref) {
   final repo = ref.watch(patientRepositoryProvider);
-  return PatientsController(repo);
+  final authState = ref.watch(authControllerProvider);
+  final controller = PatientsController(repo);
+
+  if (authState.isAuthenticated) {
+    controller.loadPatients();
+  }
+
+  return controller;
 });
 
 // Single patient provider

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/errors/app_exception.dart';
 import '../../../core/network/api_endpoints.dart';
 import '../../../core/network/dio_client.dart';
+import '../../auth/presentation/auth_controller.dart';
 import '../../patients/domain/patient_model.dart';
 import '../../photos/domain/photo_model.dart';
 
@@ -66,8 +67,10 @@ class DashboardState {
 class DashboardController extends StateNotifier<DashboardState> {
   final Dio _dio;
 
-  DashboardController(this._dio) : super(const DashboardState()) {
-    loadDashboard();
+  DashboardController(this._dio) : super(const DashboardState());
+
+  void reset() {
+    state = const DashboardState();
   }
 
   Future<void> loadDashboard() async {
@@ -75,7 +78,7 @@ class DashboardController extends StateNotifier<DashboardState> {
     try {
       final response = await _dio.get(ApiEndpoints.dashboardStats);
       final data = DashboardData.fromJson(response.data['data']);
-      state = state.copyWith(isLoading: false, data: data);
+      state = state.copyWith(isLoading: false, data: data, errorMessage: null);
     } on DioException catch (e) {
       state = state.copyWith(isLoading: false, errorMessage: AppException.fromDio(e).message);
     } catch (_) {
@@ -87,5 +90,12 @@ class DashboardController extends StateNotifier<DashboardState> {
 final dashboardControllerProvider =
     StateNotifierProvider<DashboardController, DashboardState>((ref) {
   final dio = ref.watch(dioProvider);
-  return DashboardController(dio);
+  final authState = ref.watch(authControllerProvider);
+  final controller = DashboardController(dio);
+
+  if (authState.isAuthenticated) {
+    controller.loadDashboard();
+  }
+
+  return controller;
 });

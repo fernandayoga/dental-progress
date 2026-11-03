@@ -46,21 +46,26 @@ class AppSearchBar extends StatelessWidget {
               ),
             ),
           ),
-          if (controller.text.isNotEmpty)
-            GestureDetector(
-              onTap: () {
-                controller.clear();
-                if (onClear != null) {
-                  onClear!();
-                } else if (onChanged != null) {
-                  onChanged!('');
-                }
-              },
-              child: const Padding(
-                padding: EdgeInsets.all(4.0),
-                child: Icon(Icons.close, size: 18, color: AppColors.textSecondary),
-              ),
-            ),
+          ValueListenableBuilder<TextEditingValue>(
+            valueListenable: controller,
+            builder: (context, value, _) {
+              if (value.text.isEmpty) return const SizedBox.shrink();
+              return GestureDetector(
+                onTap: () {
+                  controller.clear();
+                  if (onClear != null) {
+                    onClear!();
+                  } else if (onChanged != null) {
+                    onChanged!('');
+                  }
+                },
+                child: const Padding(
+                  padding: EdgeInsets.all(4.0),
+                  child: Icon(Icons.close, size: 18, color: AppColors.textSecondary),
+                ),
+              );
+            },
+          ),
         ],
       ),
     );

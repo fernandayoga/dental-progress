@@ -3,16 +3,51 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_dimensions.dart';
-import '../../../core/constants/app_typography.dart';
 import '../../../shared/widgets/app_button.dart';
 import '../../../shared/widgets/confirm_dialog.dart';
 import '../../auth/presentation/auth_controller.dart';
 
-class ProfileScreen extends ConsumerWidget {
+class ProfileScreen extends ConsumerStatefulWidget {
   const ProfileScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<ProfileScreen> createState() => _ProfileScreenState();
+}
+
+class _ProfileScreenState extends ConsumerState<ProfileScreen> {
+  bool _isLoggingOut = false;
+
+  Future<void> _handleLogout() async {
+    final confirmed = await ConfirmDialog.show(
+      context: context,
+      title: 'Log Out of Clinic Portal?',
+      message: 'Are you sure you want to log out of Dental Progress?',
+      confirmLabel: 'Log Out',
+      isDestructive: true,
+      onConfirm: () async {
+        setState(() => _isLoggingOut = true);
+        await ref.read(authControllerProvider.notifier).logout();
+      },
+    );
+
+    if (confirmed && mounted) {
+      context.go('/login');
+    } else if (mounted) {
+      setState(() => _isLoggingOut = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    // SEMENTARA DINONAKTIFKAN: Halaman dibuat kosong sesuai permintaan, kode asli tetap dipertahankan
+    const bool isTemporarilyDisabled = true;
+    if (isTemporarilyDisabled) {
+      return const Scaffold(
+        backgroundColor: AppColors.background,
+      );
+    }
+
+    // ignore: dead_code
     final authState = ref.watch(authControllerProvider);
     final dentist = authState.dentist;
 
@@ -22,11 +57,14 @@ class ProfileScreen extends ConsumerWidget {
         title: const Text('Dentist Profile'),
       ),
       body: ListView(
-        padding: const EdgeInsets.all(AppDimensions.md),
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppDimensions.md,
+          vertical: AppDimensions.md,
+        ),
         children: [
-          // Profile Card
+          // Practitioner Profile Card (Swiss minimal)
           Container(
-            padding: const EdgeInsets.all(AppDimensions.lg),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
             decoration: BoxDecoration(
               color: AppColors.surface,
               borderRadius: AppDimensions.roundedMd,
@@ -35,42 +73,53 @@ class ProfileScreen extends ConsumerWidget {
             child: Column(
               children: [
                 Container(
-                  width: 64,
-                  height: 64,
-                  decoration: const BoxDecoration(
+                  width: 56,
+                  height: 56,
+                  decoration: BoxDecoration(
                     color: AppColors.primaryLight,
                     shape: BoxShape.circle,
+                    border: Border.all(
+                      color: AppColors.primary.withValues(alpha: 0.25),
+                      width: 1.0,
+                    ),
                   ),
                   child: const Icon(
-                    Icons.person,
-                    size: 36,
+                    Icons.person_rounded,
+                    size: 30,
                     color: AppColors.primary,
                   ),
                 ),
                 const SizedBox(height: AppDimensions.sm),
                 Text(
                   dentist?.name ?? 'Dr. Dentist',
-                  style: AppTypography.pageTitle.copyWith(fontSize: 18),
+                  style: const TextStyle(
+                    fontSize: 17,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.textPrimary,
+                    letterSpacing: -0.3,
+                  ),
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 2),
                 Text(
                   dentist?.email ?? '',
-                  style: AppTypography.bodySmall,
+                  style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
                   textAlign: TextAlign.center,
                 ),
-                const SizedBox(height: AppDimensions.md),
+                const SizedBox(height: AppDimensions.sm),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
                   decoration: BoxDecoration(
                     color: AppColors.primaryLight,
-                    borderRadius: AppDimensions.roundedSm,
+                    borderRadius: AppDimensions.roundedPill,
                   ),
-                  child: Text(
-                    'Licensed Dental Practitioner',
-                    style: AppTypography.caption.copyWith(
+                  child: const Text(
+                    'LICENSED DENTAL PRACTITIONER',
+                    style: TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w700,
                       color: AppColors.primaryDark,
-                      fontWeight: FontWeight.w600,
+                      letterSpacing: 0.6,
                     ),
                   ),
                 ),
@@ -79,7 +128,7 @@ class ProfileScreen extends ConsumerWidget {
           ),
           const SizedBox(height: AppDimensions.md),
 
-          // Practice & System Info Card
+          // Clinical Application Info (Grouped Surface)
           Container(
             padding: const EdgeInsets.all(AppDimensions.md),
             decoration: BoxDecoration(
@@ -87,18 +136,26 @@ class ProfileScreen extends ConsumerWidget {
               borderRadius: AppDimensions.roundedMd,
               border: Border.all(color: AppColors.border),
             ),
-            child: Column(
+            child: const Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text('Clinical Application Info', style: AppTypography.sectionTitle),
-                const SizedBox(height: AppDimensions.md),
+                Text(
+                  'SYSTEM INFRASTRUCTURE',
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.primary,
+                    letterSpacing: 0.6,
+                  ),
+                ),
+                SizedBox(height: AppDimensions.md),
                 _ProfileRow(label: 'Application', value: 'Dental Progress'),
-                const Divider(),
+                Divider(height: 1),
                 _ProfileRow(label: 'Platform Version', value: 'v1.0.0 (Production)'),
-                const Divider(),
+                Divider(height: 1),
                 _ProfileRow(label: 'Image Storage', value: 'Cloudinary Encrypted'),
-                const Divider(),
-                _ProfileRow(label: 'Database', value: 'MongoDB Cloud/Local Cluster'),
+                Divider(height: 1),
+                _ProfileRow(label: 'Database Cluster', value: 'MongoDB Atlas'),
               ],
             ),
           ),
@@ -106,25 +163,11 @@ class ProfileScreen extends ConsumerWidget {
 
           // Logout Action
           AppButton(
-            label: 'Log Out of Clinical Portal',
+            label: _isLoggingOut ? 'Logging Out...' : 'Log Out of Clinical Portal',
             variant: AppButtonVariant.danger,
-            icon: Icons.logout,
-            onPressed: () async {
-              final confirmed = await ConfirmDialog.show(
-                context: context,
-                title: 'Log Out?',
-                message: 'Are you sure you want to log out of Dental Progress?',
-                confirmLabel: 'Log Out',
-                isDestructive: true,
-              );
-
-              if (confirmed) {
-                await ref.read(authControllerProvider.notifier).logout();
-                if (context.mounted) {
-                  context.go('/login');
-                }
-              }
-            },
+            icon: Icons.logout_rounded,
+            isLoading: _isLoggingOut,
+            onPressed: _isLoggingOut ? null : _handleLogout,
           ),
         ],
       ),
@@ -141,14 +184,15 @@ class _ProfileRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 6.0),
+      padding: const EdgeInsets.symmetric(vertical: 9.0),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(label, style: AppTypography.bodySmall),
+          Text(label, style: const TextStyle(fontSize: 12, color: AppColors.textSecondary)),
           Text(
             value,
-            style: AppTypography.bodySmall.copyWith(
+            style: const TextStyle(
+              fontSize: 12,
               fontWeight: FontWeight.w600,
               color: AppColors.textPrimary,
             ),

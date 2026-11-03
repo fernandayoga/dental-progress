@@ -4,7 +4,6 @@ import 'package:go_router/go_router.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_dimensions.dart';
-import '../../../core/constants/app_typography.dart';
 import '../../../core/utils/date_formatter.dart';
 import '../../../shared/widgets/app_button.dart';
 import '../../../shared/widgets/confirm_dialog.dart';
@@ -57,11 +56,11 @@ class _PatientDetailScreenState extends ConsumerState<PatientDetailScreen> {
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: const Text('Patient Details'),
+        title: const Text('Patient Record'),
         actions: [
           patientAsync.when(
             data: (patient) => PopupMenuButton<String>(
-              icon: const Icon(Icons.more_vert),
+              icon: const Icon(Icons.more_vert_rounded),
               onSelected: (val) {
                 if (val == 'edit') {
                   context.push('/patients/${patient.id}/edit', extra: patient).then((_) {
@@ -86,7 +85,7 @@ class _PatientDetailScreenState extends ConsumerState<PatientDetailScreen> {
                   value: 'delete',
                   child: Row(
                     children: [
-                      Icon(Icons.delete_outline, size: 18, color: AppColors.error),
+                      Icon(Icons.delete_outline_rounded, size: 18, color: AppColors.error),
                       SizedBox(width: 8),
                       Text('Delete Patient', style: TextStyle(color: AppColors.error)),
                     ],
@@ -117,9 +116,12 @@ class _PatientDetailScreenState extends ConsumerState<PatientDetailScreen> {
                   .loadPhotos();
             },
             child: ListView(
-              padding: const EdgeInsets.all(AppDimensions.md),
+              padding: const EdgeInsets.symmetric(
+                horizontal: AppDimensions.md,
+                vertical: AppDimensions.md,
+              ),
               children: [
-                // Patient Summary Card
+                // Patient Identity & Info Strip (Compact Swiss Layout)
                 Container(
                   padding: const EdgeInsets.all(AppDimensions.md),
                   decoration: BoxDecoration(
@@ -132,27 +134,40 @@ class _PatientDetailScreenState extends ConsumerState<PatientDetailScreen> {
                     children: [
                       Row(
                         children: [
-                          PatientAvatar(name: patient.name, size: 50),
-                          const SizedBox(width: AppDimensions.md),
+                          PatientAvatar(name: patient.name, size: 48),
+                          const SizedBox(width: 12),
                           Expanded(
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
                                   patient.name,
-                                  style: AppTypography.pageTitle.copyWith(fontSize: 18),
+                                  style: const TextStyle(
+                                    fontSize: 17,
+                                    fontWeight: FontWeight.w700,
+                                    color: AppColors.textPrimary,
+                                    letterSpacing: -0.3,
+                                  ),
                                 ),
-                                const SizedBox(height: 2),
+                                const SizedBox(height: 3),
                                 Row(
                                   children: [
-                                    Text(
-                                      patient.patientId,
-                                      style: AppTypography.caption.copyWith(
-                                        color: AppColors.primary,
-                                        fontWeight: FontWeight.w700,
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                      decoration: BoxDecoration(
+                                        color: AppColors.primaryLight,
+                                        borderRadius: AppDimensions.roundedSm,
+                                      ),
+                                      child: Text(
+                                        patient.patientId,
+                                        style: const TextStyle(
+                                          fontSize: 11,
+                                          fontWeight: FontWeight.w700,
+                                          color: AppColors.primaryDark,
+                                        ),
                                       ),
                                     ),
-                                    const SizedBox(width: 8),
+                                    const SizedBox(width: 6),
                                     StatusBadge.gender(patient.gender),
                                   ],
                                 ),
@@ -161,32 +176,53 @@ class _PatientDetailScreenState extends ConsumerState<PatientDetailScreen> {
                           ),
                         ],
                       ),
-                      const SizedBox(height: AppDimensions.md),
-                      const Divider(),
-                      const SizedBox(height: AppDimensions.sm),
-                      // Details row
+                      const SizedBox(height: 12),
+                      const Divider(height: 1),
+                      const SizedBox(height: 10),
+
+                      // Demographics row
                       Row(
                         children: [
                           Expanded(
-                            child: _InfoItem(
-                              label: 'Date of Birth',
-                              value: '${DateFormatter.format(patient.dateOfBirth)} (${DateFormatter.calculateAge(patient.dateOfBirth)})',
+                            child: Row(
+                              children: [
+                                const Icon(Icons.cake_outlined, size: 14, color: AppColors.textSecondary),
+                                const SizedBox(width: 6),
+                                Text(
+                                  '${DateFormatter.format(patient.dateOfBirth)} (${DateFormatter.calculateAge(patient.dateOfBirth)})',
+                                  style: const TextStyle(fontSize: 12, color: AppColors.textPrimary, fontWeight: FontWeight.w500),
+                                ),
+                              ],
                             ),
                           ),
                           Expanded(
-                            child: _InfoItem(
-                              label: 'Phone',
-                              value: patient.phone,
+                            child: Row(
+                              children: [
+                                const Icon(Icons.phone_outlined, size: 14, color: AppColors.textSecondary),
+                                const SizedBox(width: 6),
+                                Text(
+                                  patient.phone,
+                                  style: const TextStyle(fontSize: 12, color: AppColors.textPrimary, fontWeight: FontWeight.w500),
+                                ),
+                              ],
                             ),
                           ),
                         ],
                       ),
                       if (patient.additionalInformation != null &&
                           patient.additionalInformation!.isNotEmpty) ...[
-                        const SizedBox(height: AppDimensions.sm),
-                        _InfoItem(
-                          label: 'Clinical Notes',
-                          value: patient.additionalInformation!,
+                        const SizedBox(height: 8),
+                        Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: AppColors.surfaceMuted,
+                            borderRadius: AppDimensions.roundedSm,
+                          ),
+                          child: Text(
+                            patient.additionalInformation!,
+                            style: const TextStyle(fontSize: 11, color: AppColors.textSecondary, height: 1.35),
+                          ),
                         ),
                       ],
                     ],
@@ -194,25 +230,34 @@ class _PatientDetailScreenState extends ConsumerState<PatientDetailScreen> {
                 ),
                 const SizedBox(height: AppDimensions.lg),
 
-                // Treatment Photos Section Header (Primary focus of screen)
+                // Treatment Photos Section Header
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Row(
                       children: [
-                        const Text('Treatment Photos', style: AppTypography.sectionTitle),
+                        const Text(
+                          'Treatment Photos',
+                          style: TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.textPrimary,
+                            letterSpacing: -0.2,
+                          ),
+                        ),
                         const SizedBox(width: 8),
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                          padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
                           decoration: BoxDecoration(
                             color: AppColors.primaryLight,
                             borderRadius: AppDimensions.roundedSm,
                           ),
                           child: Text(
                             '${photos.length}',
-                            style: AppTypography.caption.copyWith(
-                              color: AppColors.primaryDark,
+                            style: const TextStyle(
+                              fontSize: 11,
                               fontWeight: FontWeight.w700,
+                              color: AppColors.primaryDark,
                             ),
                           ),
                         ),
@@ -220,11 +265,13 @@ class _PatientDetailScreenState extends ConsumerState<PatientDetailScreen> {
                     ),
                     if (photos.length >= 2) ...[
                       OutlinedButton.icon(
-                        icon: const Icon(Icons.compare_arrows, size: 16),
-                        label: const Text('Compare', style: TextStyle(fontSize: 13)),
+                        icon: const Icon(Icons.compare_arrows_rounded, size: 16),
+                        label: const Text('Compare Progress', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
                         style: OutlinedButton.styleFrom(
-                          minimumSize: const Size(0, 36),
-                          padding: const EdgeInsets.symmetric(horizontal: 12),
+                          minimumSize: const Size(0, 34),
+                          padding: const EdgeInsets.symmetric(horizontal: 10),
+                          foregroundColor: AppColors.primary,
+                          side: const BorderSide(color: AppColors.primary, width: 1.0),
                         ),
                         onPressed: () {
                           context.push(
@@ -254,20 +301,31 @@ class _PatientDetailScreenState extends ConsumerState<PatientDetailScreen> {
                     ),
                     child: Column(
                       children: [
-                        const Icon(
-                          Icons.add_a_photo_outlined,
-                          size: 42,
-                          color: AppColors.textTertiary,
+                        Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: const BoxDecoration(
+                            color: AppColors.surfaceMuted,
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(
+                            Icons.add_a_photo_outlined,
+                            size: 28,
+                            color: AppColors.textTertiary,
+                          ),
                         ),
                         const SizedBox(height: AppDimensions.sm),
                         const Text(
                           'No Photos Documented Yet',
-                          style: AppTypography.sectionTitle,
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.textPrimary,
+                          ),
                         ),
-                        const SizedBox(height: 4),
+                        const SizedBox(height: 3),
                         const Text(
-                          'Take or upload dental progress photos to track orthodontic alignment.',
-                          style: AppTypography.bodySmall,
+                          'Capture and organize dental progress photos to track orthodontic alignment.',
+                          style: TextStyle(fontSize: 11, color: AppColors.textSecondary),
                           textAlign: TextAlign.center,
                         ),
                         const SizedBox(height: AppDimensions.md),
@@ -297,7 +355,12 @@ class _PatientDetailScreenState extends ConsumerState<PatientDetailScreen> {
                     itemCount: photos.length,
                     itemBuilder: (context, index) {
                       final photo = photos[index];
-                      return Card(
+                      return Container(
+                        decoration: BoxDecoration(
+                          color: AppColors.surface,
+                          borderRadius: AppDimensions.roundedMd,
+                          border: Border.all(color: AppColors.border),
+                        ),
                         clipBehavior: Clip.antiAlias,
                         child: InkWell(
                           onTap: () {
@@ -322,9 +385,9 @@ class _PatientDetailScreenState extends ConsumerState<PatientDetailScreen> {
                                     color: AppColors.surfaceMuted,
                                     child: const Center(
                                       child: SizedBox(
-                                        width: 20,
-                                        height: 20,
-                                        child: CircularProgressIndicator(strokeWidth: 2),
+                                        width: 18,
+                                        height: 18,
+                                        child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.primary),
                                       ),
                                     ),
                                   ),
@@ -339,7 +402,7 @@ class _PatientDetailScreenState extends ConsumerState<PatientDetailScreen> {
                               ),
                               // Metadata footer
                               Padding(
-                                padding: const EdgeInsets.all(8.0),
+                                padding: const EdgeInsets.all(7.0),
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
@@ -349,17 +412,18 @@ class _PatientDetailScreenState extends ConsumerState<PatientDetailScreen> {
                                         StatusBadge.category(photo.category),
                                         Text(
                                           DateFormatter.format(photo.documentationDate),
-                                          style: AppTypography.caption,
+                                          style: const TextStyle(fontSize: 10, color: AppColors.textSecondary),
                                         ),
                                       ],
                                     ),
                                     if (photo.notes.isNotEmpty) ...[
-                                      const SizedBox(height: 4),
+                                      const SizedBox(height: 3),
                                       Text(
                                         photo.notes,
                                         maxLines: 1,
                                         overflow: TextOverflow.ellipsis,
-                                        style: AppTypography.caption.copyWith(
+                                        style: const TextStyle(
+                                          fontSize: 10,
                                           color: AppColors.textSecondary,
                                         ),
                                       ),
@@ -374,7 +438,7 @@ class _PatientDetailScreenState extends ConsumerState<PatientDetailScreen> {
                     },
                   ),
                 ],
-                const SizedBox(height: 80), // Fab padding
+                const SizedBox(height: 80),
               ],
             ),
           );
@@ -389,28 +453,9 @@ class _PatientDetailScreenState extends ConsumerState<PatientDetailScreen> {
         },
         backgroundColor: AppColors.primary,
         foregroundColor: Colors.white,
-        icon: const Icon(Icons.add_a_photo),
+        icon: const Icon(Icons.add_a_photo_rounded),
         label: const Text('Add Photo'),
       ),
-    );
-  }
-}
-
-class _InfoItem extends StatelessWidget {
-  final String label;
-  final String value;
-
-  const _InfoItem({required this.label, required this.value});
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(label, style: AppTypography.label),
-        const SizedBox(height: 2),
-        Text(value, style: AppTypography.bodySmall.copyWith(color: AppColors.textPrimary)),
-      ],
     );
   }
 }

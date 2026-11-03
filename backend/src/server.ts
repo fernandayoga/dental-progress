@@ -2,6 +2,7 @@ import { createApp } from './app.js';
 import { config } from './config/env.js';
 import { connectDatabase, disconnectDatabase } from './config/db.js';
 import { authService } from './services/authService.js';
+import { seedDatabase } from './utils/seedData.js';
 import { logger } from './utils/logger.js';
 
 const startServer = async () => {
@@ -9,8 +10,9 @@ const startServer = async () => {
     // 1. Connect to MongoDB
     await connectDatabase();
 
-    // 2. Seed initial demo dentist if no accounts exist
+    // 2. Seed initial demo dentist and sample clinical data if empty
     await authService.seedInitialDentist();
+    await seedDatabase();
 
     // 3. Create and start Express app
     const app = createApp();

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../features/auth/presentation/auth_controller.dart';
 import '../features/auth/presentation/login_screen.dart';
+import '../features/auth/presentation/splash_screen.dart';
 import '../features/dashboard/presentation/dashboard_screen.dart';
 import '../features/patients/domain/patient_model.dart';
 import '../features/patients/presentation/add_edit_patient_screen.dart';
@@ -25,24 +26,41 @@ final routerProvider = Provider<GoRouter>((ref) {
 
   return GoRouter(
     navigatorKey: _rootNavigatorKey,
-    initialLocation: '/dashboard',
+    initialLocation: '/splash',
     redirect: (context, state) {
-      final isAuthenticating = authState.status == AuthStatus.authenticating;
       final isInitial = authState.status == AuthStatus.initial;
-      if (isInitial || isAuthenticating) return null;
-
+      final isAuthenticating = authState.status == AuthStatus.authenticating;
       final loggedIn = authState.isAuthenticated;
       final goingToLogin = state.matchedLocation == '/login';
+      final isSplash = state.matchedLocation == '/splash';
 
-      if (!loggedIn && !goingToLogin) {
-        return '/login';
+      // While checking session on launch, keep on splash screen
+      if (isInitial) {
+        return '/splash';
       }
-      if (loggedIn && goingToLogin) {
+
+      // While login in-flight, remain on current view
+      if (isAuthenticating) {
+        return null;
+      }
+
+      // If not logged in, force to login unless already there
+      if (!loggedIn) {
+        return goingToLogin ? null : '/login';
+      }
+
+      // If logged in, navigate away from login or splash to dashboard
+      if (goingToLogin || isSplash) {
         return '/dashboard';
       }
+
       return null;
     },
     routes: [
+      GoRoute(
+        path: '/splash',
+        builder: (context, state) => const SplashScreen(),
+      ),
       GoRoute(
         path: '/login',
         builder: (context, state) => const LoginScreen(),

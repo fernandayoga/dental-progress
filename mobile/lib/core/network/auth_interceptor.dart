@@ -26,8 +26,11 @@ class AuthInterceptor extends Interceptor {
   @override
   void onError(DioException err, ErrorInterceptorHandler handler) {
     if (err.response?.statusCode == 401) {
-      // Token expired or invalid
-      _storage.delete(key: tokenKey).catchError((_) {});
+      // Only delete the stored token if this was an authenticated request where a token was rejected
+      final hadAuth = err.requestOptions.headers.containsKey('Authorization');
+      if (hadAuth && !err.requestOptions.path.contains('/auth/login')) {
+        _storage.delete(key: tokenKey).catchError((_) {});
+      }
     }
     return handler.next(err);
   }

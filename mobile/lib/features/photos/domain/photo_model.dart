@@ -1,3 +1,5 @@
+import '../../../core/config/api_config.dart';
+
 class PhotoModel {
   final String id;
   final String patientId;
@@ -28,11 +30,14 @@ class PhotoModel {
       pId = json['patientId'];
     }
 
+    final rawUrl = json['imageUrl'] ?? '';
+    final normalizedUrl = ApiConfig.normalizeImageUrl(rawUrl);
+
     return PhotoModel(
       id: json['_id'] ?? json['id'] ?? '',
       patientId: pId,
       cloudinaryPublicId: json['cloudinaryPublicId'] ?? '',
-      imageUrl: json['imageUrl'] ?? '',
+      imageUrl: normalizedUrl,
       category: json['category'] ?? 'General',
       documentationDate: json['documentationDate'] != null
           ? DateTime.tryParse(json['documentationDate']) ?? DateTime.now()

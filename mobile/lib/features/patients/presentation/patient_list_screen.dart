@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_dimensions.dart';
-import '../../../core/constants/app_typography.dart';
 import '../../../core/utils/date_formatter.dart';
 import '../../../shared/widgets/app_search_bar.dart';
 import '../../../shared/widgets/empty_state_view.dart';
@@ -31,34 +30,65 @@ class _PatientListScreenState extends ConsumerState<PatientListScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // SEMENTARA DINONAKTIFKAN: Halaman dibuat kosong sesuai permintaan, kode asli tetap dipertahankan
+    const bool isTemporarilyDisabled = true;
+    if (isTemporarilyDisabled) {
+      return const Scaffold(
+        backgroundColor: AppColors.background,
+      );
+    }
+
+    // ignore: dead_code
     final state = ref.watch(patientsControllerProvider);
 
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: const Text('Patients'),
+        title: Row(
+          children: [
+            const Text('Patients'),
+            if (state.patients.isNotEmpty) ...[
+              const SizedBox(width: 8),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                decoration: BoxDecoration(
+                  color: AppColors.primaryLight,
+                  borderRadius: AppDimensions.roundedSm,
+                ),
+                child: Text(
+                  '${state.patients.length}',
+                  style: const TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.primaryDark,
+                  ),
+                ),
+              ),
+            ],
+          ],
+        ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.person_add_outlined),
+            icon: const Icon(Icons.person_add_rounded),
             tooltip: 'Add Patient',
             onPressed: () => context.push('/patients/add'),
           ),
-          const SizedBox(width: AppDimensions.sm),
+          const SizedBox(width: AppDimensions.xs),
         ],
       ),
       body: Column(
         children: [
-          // Prominent Search Bar
+          // Minimalist Search Bar
           Padding(
             padding: const EdgeInsets.fromLTRB(
               AppDimensions.md,
               AppDimensions.sm,
               AppDimensions.md,
-              AppDimensions.sm,
+              AppDimensions.xs,
             ),
             child: AppSearchBar(
               controller: _searchController,
-              hint: 'Search by patient name or ID...',
+              hint: 'Search patients by name or ID...',
               onChanged: (val) {
                 ref.read(patientsControllerProvider.notifier).onSearchChanged(val);
               },
@@ -68,12 +98,44 @@ class _PatientListScreenState extends ConsumerState<PatientListScreen> {
             ),
           ),
 
-          // Main Content List / States
+          // Active Query / Filter Feedback
+          if (state.searchQuery.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.symmetric(
+                horizontal: AppDimensions.md,
+                vertical: AppDimensions.xs,
+              ),
+              child: Row(
+                children: [
+                  Text(
+                    '${state.patients.length} results for "${state.searchQuery}"',
+                    style: const TextStyle(fontSize: 11, color: AppColors.textSecondary),
+                  ),
+                  const Spacer(),
+                  GestureDetector(
+                    onTap: () {
+                      _searchController.clear();
+                      ref.read(patientsControllerProvider.notifier).onSearchChanged('');
+                    },
+                    child: const Text(
+                      'Clear',
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: AppColors.primary,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+          // Main Patient Content
           Expanded(
             child: Builder(
               builder: (context) {
                 if (state.isLoading && state.patients.isEmpty) {
-                  return const LoadingView(message: 'Searching patients...');
+                  return const LoadingView(message: 'Loading patient records...');
                 }
 
                 if (state.errorMessage != null && state.patients.isEmpty) {
@@ -86,11 +148,11 @@ class _PatientListScreenState extends ConsumerState<PatientListScreen> {
                 if (state.patients.isEmpty) {
                   final isSearching = state.searchQuery.isNotEmpty;
                   return EmptyStateView(
-                    icon: isSearching ? Icons.search_off_outlined : Icons.people_outline,
+                    icon: isSearching ? Icons.search_off_rounded : Icons.people_outline_rounded,
                     title: isSearching ? 'No Matching Patients' : 'No Patients Yet',
                     description: isSearching
                         ? 'No patient records found matching "${state.searchQuery}".'
-                        : 'Register a new patient to begin orthodontic documentation.',
+                        : 'Register a patient to begin orthodontic treatment documentation.',
                     actionLabel: isSearching ? 'Clear Search' : 'Add First Patient',
                     onAction: () {
                       if (isSearching) {
@@ -106,123 +168,149 @@ class _PatientListScreenState extends ConsumerState<PatientListScreen> {
                 return RefreshIndicator(
                   color: AppColors.primary,
                   onRefresh: () => ref.read(patientsControllerProvider.notifier).loadPatients(),
-                  child: ListView.separated(
+                  child: ListView(
                     padding: const EdgeInsets.symmetric(
                       horizontal: AppDimensions.md,
                       vertical: AppDimensions.sm,
                     ),
-                    itemCount: state.patients.length,
-                    separatorBuilder: (_, __) => const SizedBox(height: AppDimensions.sm),
-                    itemBuilder: (context, index) {
-                      final patient = state.patients[index];
-                      return Card(
-                        child: InkWell(
-                          onTap: () => context.push('/patients/${patient.id}'),
+                    children: [
+                      // Cohesive Grouped Surface with subtle dividers (No individual heavy cards!)
+                      Container(
+                        decoration: BoxDecoration(
+                          color: AppColors.surface,
                           borderRadius: AppDimensions.roundedMd,
-                          child: Padding(
-                            padding: const EdgeInsets.all(AppDimensions.md),
-                            child: Row(
-                              children: [
-                                PatientAvatar(name: patient.name, size: 44),
-                                const SizedBox(width: AppDimensions.md),
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
+                          border: Border.all(color: AppColors.border),
+                        ),
+                        child: Column(
+                          children: [
+                            for (int i = 0; i < state.patients.length; i++) ...[
+                              InkWell(
+                                onTap: () => context.push('/patients/${state.patients[i].id}'),
+                                borderRadius: i == 0
+                                    ? const BorderRadius.vertical(top: Radius.circular(12))
+                                    : (i == state.patients.length - 1
+                                        ? const BorderRadius.vertical(bottom: Radius.circular(12))
+                                        : BorderRadius.zero),
+                                child: Padding(
+                                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                                  child: Row(
                                     children: [
-                                      Row(
-                                        children: [
-                                          Expanded(
-                                            child: Text(
-                                              patient.name,
-                                              style: AppTypography.bodyMedium.copyWith(
-                                                fontWeight: FontWeight.w600,
-                                              ),
-                                              maxLines: 1,
-                                              overflow: TextOverflow.ellipsis,
-                                            ),
-                                          ),
-                                          const SizedBox(width: 8),
-                                          StatusBadge.gender(patient.gender),
-                                        ],
-                                      ),
-                                      const SizedBox(height: 4),
-                                      Row(
-                                        children: [
-                                          Text(
-                                            patient.patientId,
-                                            style: AppTypography.caption.copyWith(
-                                              color: AppColors.primary,
-                                              fontWeight: FontWeight.w600,
-                                            ),
-                                          ),
-                                          const SizedBox(width: 8),
-                                          Text(
-                                            '•  ${DateFormatter.calculateAge(patient.dateOfBirth)}',
-                                            style: AppTypography.caption,
-                                          ),
-                                        ],
-                                      ),
-                                      if (patient.latestDocumentationDate != null) ...[
-                                        const SizedBox(height: 4),
-                                        Row(
+                                      PatientAvatar(name: state.patients[i].name, size: 40),
+                                      const SizedBox(width: 12),
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment: CrossAxisAlignment.start,
                                           children: [
-                                            const Icon(
-                                              Icons.calendar_today_outlined,
-                                              size: 11,
-                                              color: AppColors.textTertiary,
+                                            Row(
+                                              children: [
+                                                Expanded(
+                                                  child: Text(
+                                                    state.patients[i].name,
+                                                    style: const TextStyle(
+                                                      fontSize: 14,
+                                                      fontWeight: FontWeight.w700,
+                                                      color: AppColors.textPrimary,
+                                                    ),
+                                                    maxLines: 1,
+                                                    overflow: TextOverflow.ellipsis,
+                                                  ),
+                                                ),
+                                                const SizedBox(width: 8),
+                                                StatusBadge.gender(state.patients[i].gender),
+                                              ],
                                             ),
-                                            const SizedBox(width: 4),
-                                            Text(
-                                              'Latest doc: ${DateFormatter.format(patient.latestDocumentationDate)}',
-                                              style: AppTypography.caption,
+                                            const SizedBox(height: 3),
+                                            Row(
+                                              children: [
+                                                Text(
+                                                  state.patients[i].patientId,
+                                                  style: const TextStyle(
+                                                    fontSize: 11,
+                                                    fontWeight: FontWeight.w600,
+                                                    color: AppColors.primary,
+                                                  ),
+                                                ),
+                                                const SizedBox(width: 6),
+                                                Text(
+                                                  '•  ${DateFormatter.calculateAge(state.patients[i].dateOfBirth)}',
+                                                  style: const TextStyle(
+                                                    fontSize: 11,
+                                                    color: AppColors.textSecondary,
+                                                  ),
+                                                ),
+                                              ],
                                             ),
+                                            if (state.patients[i].latestDocumentationDate != null) ...[
+                                              const SizedBox(height: 3),
+                                              Row(
+                                                children: [
+                                                  const Icon(
+                                                    Icons.calendar_today_outlined,
+                                                    size: 11,
+                                                    color: AppColors.textTertiary,
+                                                  ),
+                                                  const SizedBox(width: 4),
+                                                  Text(
+                                                    'Latest: ${DateFormatter.format(state.patients[i].latestDocumentationDate)}',
+                                                    style: const TextStyle(
+                                                      fontSize: 11,
+                                                      color: AppColors.textTertiary,
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                            ],
                                           ],
                                         ),
-                                      ],
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Column(
+                                        mainAxisAlignment: MainAxisAlignment.center,
+                                        crossAxisAlignment: CrossAxisAlignment.end,
+                                        children: [
+                                          if (state.patients[i].photoCount > 0)
+                                            Container(
+                                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                              decoration: BoxDecoration(
+                                                color: AppColors.primaryLight,
+                                                borderRadius: AppDimensions.roundedSm,
+                                              ),
+                                              child: Row(
+                                                mainAxisSize: MainAxisSize.min,
+                                                children: [
+                                                  const Icon(Icons.photo_library_outlined, size: 11, color: AppColors.primaryDark),
+                                                  const SizedBox(width: 3),
+                                                  Text(
+                                                    '${state.patients[i].photoCount}',
+                                                    style: const TextStyle(
+                                                      fontSize: 11,
+                                                      fontWeight: FontWeight.w700,
+                                                      color: AppColors.primaryDark,
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                            ),
+                                          const SizedBox(height: 4),
+                                          const Icon(
+                                            Icons.chevron_right_rounded,
+                                            size: 18,
+                                            color: AppColors.textTertiary,
+                                          ),
+                                        ],
+                                      ),
                                     ],
                                   ),
                                 ),
-                                const SizedBox(width: AppDimensions.sm),
-                                Column(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  crossAxisAlignment: CrossAxisAlignment.end,
-                                  children: [
-                                    if (patient.photoCount > 0)
-                                      Container(
-                                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                        decoration: BoxDecoration(
-                                          color: AppColors.surfaceMuted,
-                                          borderRadius: AppDimensions.roundedSm,
-                                        ),
-                                        child: Row(
-                                          mainAxisSize: MainAxisSize.min,
-                                          children: [
-                                            const Icon(Icons.photo_outlined, size: 12, color: AppColors.textSecondary),
-                                            const SizedBox(width: 3),
-                                            Text(
-                                              '${patient.photoCount}',
-                                              style: AppTypography.caption.copyWith(
-                                                color: AppColors.textSecondary,
-                                                fontWeight: FontWeight.w600,
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                    const SizedBox(height: 6),
-                                    const Icon(
-                                      Icons.chevron_right,
-                                      size: 18,
-                                      color: AppColors.textTertiary,
-                                    ),
-                                  ],
-                                ),
-                              ],
-                            ),
-                          ),
+                              ),
+                              if (i < state.patients.length - 1)
+                                const Divider(height: 1, indent: 64, color: AppColors.border),
+                            ],
+                          ],
                         ),
-                      );
-                    },
+                      ),
+                      const SizedBox(height: 80), // Fab scroll padding
+                    ],
                   ),
                 );
               },
@@ -235,7 +323,7 @@ class _PatientListScreenState extends ConsumerState<PatientListScreen> {
         backgroundColor: AppColors.primary,
         foregroundColor: Colors.white,
         tooltip: 'Add Patient',
-        child: const Icon(Icons.add),
+        child: const Icon(Icons.person_add_rounded),
       ),
     );
   }

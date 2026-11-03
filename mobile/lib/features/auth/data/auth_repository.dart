@@ -83,7 +83,11 @@ class AuthRepositoryImpl implements AuthRepository {
 
   @override
   Future<void> logout() async {
-    await _storage.delete(key: AuthInterceptor.tokenKey);
+    try {
+      await _storage.delete(key: AuthInterceptor.tokenKey);
+    } catch (_) {
+      // Storage delete error handled safely
+    }
   }
 }
 

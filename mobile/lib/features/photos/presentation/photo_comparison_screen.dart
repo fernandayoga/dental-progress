@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_dimensions.dart';
-import '../../../core/constants/app_typography.dart';
 import '../../../core/utils/date_formatter.dart';
 import '../../../shared/widgets/status_badge.dart';
 import '../../patients/domain/patient_model.dart';
@@ -33,7 +32,7 @@ class _PhotoComparisonScreenState extends State<PhotoComparisonScreen> {
   @override
   void initState() {
     super.initState();
-    // Default: oldest photo as A, newest as B, or provided initials
+    // Default: oldest photo as A (Baseline), newest as B (Progress)
     final sortedByDate = List<PhotoModel>.from(widget.photos)
       ..sort((a, b) => a.documentationDate.compareTo(b.documentationDate));
 
@@ -63,16 +62,16 @@ class _PhotoComparisonScreenState extends State<PhotoComparisonScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Padding(
-                padding: const EdgeInsets.all(AppDimensions.md),
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text(
-                      isSlotA ? 'Select Previous Photo (Slot A)' : 'Select Current Photo (Slot B)',
-                      style: AppTypography.sectionTitle,
+                      isSlotA ? 'Select Baseline Photo (Slot A)' : 'Select Progress Photo (Slot B)',
+                      style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: AppColors.textPrimary),
                     ),
                     IconButton(
-                      icon: const Icon(Icons.close, size: 20),
+                      icon: const Icon(Icons.close_rounded, size: 20),
                       onPressed: () => Navigator.pop(context),
                     ),
                   ],
@@ -92,23 +91,25 @@ class _PhotoComparisonScreenState extends State<PhotoComparisonScreen> {
                         borderRadius: AppDimensions.roundedSm,
                         child: CachedNetworkImage(
                           imageUrl: photo.imageUrl,
-                          width: 48,
-                          height: 48,
+                          width: 44,
+                          height: 44,
                           fit: BoxFit.cover,
                         ),
                       ),
                       title: Text(
                         photo.category,
-                        style: AppTypography.bodyMedium.copyWith(
-                          fontWeight: FontWeight.w600,
+                        style: const TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.textPrimary,
                         ),
                       ),
                       subtitle: Text(
                         'Date: ${DateFormatter.format(photo.documentationDate)}',
-                        style: AppTypography.caption,
+                        style: const TextStyle(fontSize: 11, color: AppColors.textSecondary),
                       ),
                       trailing: isSelected
-                          ? const Icon(Icons.check_circle, color: AppColors.primary)
+                          ? const Icon(Icons.check_circle_rounded, color: AppColors.primary)
                           : null,
                       onTap: () {
                         setState(() {
@@ -143,34 +144,34 @@ class _PhotoComparisonScreenState extends State<PhotoComparisonScreen> {
           children: [
             const Text(
               'Side-by-Side Comparison',
-              style: TextStyle(fontSize: 16, color: Colors.white, fontWeight: FontWeight.w600),
+              style: TextStyle(fontSize: 15, color: Colors.white, fontWeight: FontWeight.w700),
             ),
             Text(
               '${widget.patient.name} (${widget.patient.patientId})',
-              style: const TextStyle(fontSize: 12, color: Colors.white70),
+              style: const TextStyle(fontSize: 11, color: Colors.white70),
             ),
           ],
         ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.swap_horiz, color: Colors.white),
+            icon: const Icon(Icons.swap_horiz_rounded, color: Colors.white),
             tooltip: 'Swap Left / Right',
             onPressed: _swapPhotos,
           ),
-          const SizedBox(width: AppDimensions.sm),
+          const SizedBox(width: AppDimensions.xs),
         ],
       ),
       body: SafeArea(
         child: Column(
           children: [
-            // Side-by-side photo comparison viewport (prioritizes image visibility)
+            // Side-by-side comparison viewport (Maximized image space)
             Expanded(
               child: Row(
                 children: [
                   // Photo A (Left)
                   Expanded(
                     child: _ComparisonPane(
-                      label: 'PHOTO A (Earlier)',
+                      label: 'SLOT A (Baseline)',
                       photo: _photoA,
                       onTapChange: () => _showPhotoPicker(isSlotA: true),
                     ),
@@ -179,7 +180,7 @@ class _PhotoComparisonScreenState extends State<PhotoComparisonScreen> {
                   // Photo B (Right)
                   Expanded(
                     child: _ComparisonPane(
-                      label: 'PHOTO B (Later)',
+                      label: 'SLOT B (Progress)',
                       photo: _photoB,
                       onTapChange: () => _showPhotoPicker(isSlotA: false),
                     ),
@@ -188,10 +189,10 @@ class _PhotoComparisonScreenState extends State<PhotoComparisonScreen> {
               ),
             ),
 
-            // Clinical Notes Comparison Bar (Compact footer)
+            // Clinical Notes Comparison Footer
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-              color: const Color(0xFF1E293B),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              color: const Color(0xFF0F172A),
               child: Row(
                 children: [
                   Expanded(
@@ -199,11 +200,17 @@ class _PhotoComparisonScreenState extends State<PhotoComparisonScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         const Text(
-                          'NOTES A:',
-                          style: TextStyle(color: Colors.white60, fontSize: 10, fontWeight: FontWeight.w700),
+                          'NOTES A (BASELINE):',
+                          style: TextStyle(
+                            color: Colors.white60,
+                            fontSize: 10,
+                            fontWeight: FontWeight.w700,
+                            letterSpacing: 0.5,
+                          ),
                         ),
+                        const SizedBox(height: 2),
                         Text(
-                          _photoA.notes.isNotEmpty ? _photoA.notes : '—',
+                          _photoA.notes.isNotEmpty ? _photoA.notes : '— No notes',
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,
                           style: const TextStyle(color: Colors.white, fontSize: 11),
@@ -212,18 +219,24 @@ class _PhotoComparisonScreenState extends State<PhotoComparisonScreen> {
                     ),
                   ),
                   const SizedBox(width: 8),
-                  Container(width: 1, height: 32, color: Colors.white24),
+                  Container(width: 1, height: 34, color: Colors.white24),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         const Text(
-                          'NOTES B:',
-                          style: TextStyle(color: Colors.white60, fontSize: 10, fontWeight: FontWeight.w700),
+                          'NOTES B (PROGRESS):',
+                          style: TextStyle(
+                            color: Colors.white60,
+                            fontSize: 10,
+                            fontWeight: FontWeight.w700,
+                            letterSpacing: 0.5,
+                          ),
                         ),
+                        const SizedBox(height: 2),
                         Text(
-                          _photoB.notes.isNotEmpty ? _photoB.notes : '—',
+                          _photoB.notes.isNotEmpty ? _photoB.notes : '— No notes',
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,
                           style: const TextStyle(color: Colors.white, fontSize: 11),
@@ -256,7 +269,7 @@ class _ComparisonPane extends StatelessWidget {
   Widget build(BuildContext context) {
     return Column(
       children: [
-        // Header with Date & Slot Tag
+        // Pane Header Bar
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
           color: const Color(0xFF0F172A),
@@ -269,7 +282,7 @@ class _ComparisonPane extends StatelessWidget {
                   color: Colors.white70,
                   fontSize: 10,
                   fontWeight: FontWeight.w700,
-                  letterSpacing: 0.5,
+                  letterSpacing: 0.4,
                 ),
               ),
               GestureDetector(
@@ -283,7 +296,7 @@ class _ComparisonPane extends StatelessWidget {
                   child: const Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(Icons.edit, color: Colors.white, size: 10),
+                      Icon(Icons.edit_rounded, color: Colors.white, size: 10),
                       SizedBox(width: 2),
                       Text(
                         'Change',
@@ -297,7 +310,7 @@ class _ComparisonPane extends StatelessWidget {
           ),
         ),
 
-        // Photo with Interactive Zoom
+        // Photo with Interactive Zoom (contain mode, uncropped)
         Expanded(
           child: InteractiveViewer(
             minScale: 1.0,
@@ -309,7 +322,7 @@ class _ComparisonPane extends StatelessWidget {
                 child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
               ),
               errorWidget: (_, __, ___) => const Center(
-                child: Icon(Icons.broken_image, color: Colors.white38, size: 36),
+                child: Icon(Icons.broken_image_rounded, color: Colors.white38, size: 36),
               ),
             ),
           ),
