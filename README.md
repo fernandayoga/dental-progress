@@ -1,4 +1,4 @@
-# Dental Progress — Mobile Application & Backend
+# DDental Progress — Mobile Application & Backend
 
 A production-minded clinical mobile application designed exclusively for dentists to manage patient records, document orthodontic treatment photos, add clinical notes, and monitor treatment progress with side-by-side comparison.
 
