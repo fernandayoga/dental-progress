@@ -39,15 +39,6 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // SEMENTARA DINONAKTIFKAN: Halaman dibuat kosong sesuai permintaan, kode asli tetap dipertahankan
-    const bool isTemporarilyDisabled = true;
-    if (isTemporarilyDisabled) {
-      return const Scaffold(
-        backgroundColor: AppColors.background,
-      );
-    }
-
-    // ignore: dead_code
     final authState = ref.watch(authControllerProvider);
     final dentist = authState.dentist;
 
