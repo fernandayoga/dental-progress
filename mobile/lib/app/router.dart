@@ -131,8 +131,9 @@ final routerProvider = Provider<GoRouter>((ref) {
         parentNavigatorKey: _rootNavigatorKey,
         path: '/patients/:id/photos/add',
         builder: (context, state) {
-          final patient = state.extra as PatientModel;
-          return AddPhotoScreen(patient: patient);
+          final id = state.pathParameters['id']!;
+          final patient = state.extra as PatientModel?;
+          return AddPhotoScreen(patientId: id, patient: patient);
         },
       ),
 

@@ -37,30 +37,36 @@ export class CloudinaryService {
     const uniqueId = `dp_${Date.now()}_${crypto.randomBytes(4).toString('hex')}`;
 
     if (config.cloudinary.isConfigured) {
-      return new Promise<UploadResult>((resolve, reject) => {
-        const uploadStream = cloudinary.uploader.upload_stream(
-          {
-            folder: `${config.cloudinary.folder}/patients/${patientId}`,
-            public_id: uniqueId,
-            resource_type: 'image',
-            transformation: [{ quality: 'auto:good' }, { fetch_format: 'auto' }],
-          },
-          (error, result) => {
-            if (error || !result) {
-              logger.error('Cloudinary upload error:', error);
-              return reject(new Error(error?.message || 'Failed to upload photo to Cloudinary'));
+      try {
+        const result = await new Promise<UploadResult>((resolve, reject) => {
+          const uploadStream = cloudinary.uploader.upload_stream(
+            {
+              folder: `${config.cloudinary.folder}/patients/${patientId}`,
+              public_id: uniqueId,
+              resource_type: 'image',
+              transformation: [{ quality: 'auto:good' }, { fetch_format: 'auto' }],
+            },
+            (error, result) => {
+              if (error || !result) {
+                return reject(error || new Error('Failed to upload photo to Cloudinary'));
+              }
+              resolve({
+                publicId: result.public_id,
+                secureUrl: result.secure_url,
+                width: result.width,
+                height: result.height,
+                format: result.format,
+              });
             }
-            resolve({
-              publicId: result.public_id,
-              secureUrl: result.secure_url,
-              width: result.width,
-              height: result.height,
-              format: result.format,
-            });
-          }
+          );
+          uploadStream.end(fileBuffer);
+        });
+        return result;
+      } catch (cloudinaryError: any) {
+        logger.warn(
+          `Cloudinary upload rejected (${cloudinaryError?.message || cloudinaryError}). Falling back to local storage.`
         );
-        uploadStream.end(fileBuffer);
-      });
+      }
     }
 
     // Local disk fallback for development if Cloudinary credentials are not present
