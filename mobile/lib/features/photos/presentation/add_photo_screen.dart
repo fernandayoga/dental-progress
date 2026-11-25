@@ -9,14 +9,22 @@ import '../../../core/utils/date_formatter.dart';
 import '../../../core/utils/validators.dart';
 import '../../../shared/widgets/app_button.dart';
 import '../../../shared/widgets/app_text_field.dart';
+import '../../../shared/widgets/error_state_view.dart';
+import '../../../shared/widgets/loading_view.dart';
 import '../../../shared/widgets/patient_avatar.dart';
 import '../../patients/domain/patient_model.dart';
+import '../../patients/presentation/patients_controller.dart';
 import 'photos_controller.dart';
 
 class AddPhotoScreen extends ConsumerStatefulWidget {
-  final PatientModel patient;
+  final String patientId;
+  final PatientModel? patient;
 
-  const AddPhotoScreen({super.key, required this.patient});
+  const AddPhotoScreen({
+    super.key,
+    required this.patientId,
+    this.patient,
+  });
 
   @override
   ConsumerState<AddPhotoScreen> createState() => _AddPhotoScreenState();
@@ -105,7 +113,7 @@ class _AddPhotoScreenState extends ConsumerState<AddPhotoScreen> {
     }
   }
 
-  Future<void> _uploadPhoto() async {
+  Future<void> _uploadPhoto(PatientModel patient) async {
     if (_selectedFile == null || _fileBytes == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Please select or capture a photo first.')),
@@ -117,7 +125,7 @@ class _AddPhotoScreenState extends ConsumerState<AddPhotoScreen> {
 
     try {
       final controller = ref.read(
-        patientPhotosControllerProvider(widget.patient.id).notifier,
+        patientPhotosControllerProvider(patient.id).notifier,
       );
 
       await controller.uploadPhoto(
@@ -155,6 +163,24 @@ class _AddPhotoScreenState extends ConsumerState<AddPhotoScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final patientAsync = ref.watch(patientDetailProvider(widget.patientId));
+    final patient = widget.patient ?? patientAsync.valueOrNull;
+
+    if (patient == null) {
+      if (patientAsync.isLoading) {
+        return const Scaffold(
+          body: LoadingView(message: 'Loading patient information...'),
+        );
+      }
+      return Scaffold(
+        appBar: AppBar(title: const Text('Add Progress Photo')),
+        body: ErrorStateView(
+          message: patientAsync.error?.toString() ?? 'Unable to load patient record.',
+          onRetry: () => ref.invalidate(patientDetailProvider(widget.patientId)),
+        ),
+      );
+    }
+
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
@@ -178,18 +204,18 @@ class _AddPhotoScreenState extends ConsumerState<AddPhotoScreen> {
               ),
               child: Row(
                 children: [
-                  PatientAvatar(name: widget.patient.name, size: 36),
+                  PatientAvatar(name: patient.name, size: 36),
                   const SizedBox(width: 12),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          widget.patient.name,
+                          patient.name,
                           style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: AppColors.textPrimary),
                         ),
                         Text(
-                          'Patient ID: ${widget.patient.patientId}',
+                          'Patient ID: ${patient.patientId}',
                           style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: AppColors.primary),
                         ),
                       ],
@@ -208,7 +234,7 @@ class _AddPhotoScreenState extends ConsumerState<AddPhotoScreen> {
                   color: AppColors.surface,
                   borderRadius: AppDimensions.roundedMd,
                   border: Border.all(
-                    color: AppColors.primary.withValues(alpha: 0.3),
+                    color: AppColors.primary.withOpacity(0.3),
                     width: 1.5,
                   ),
                 ),
@@ -241,18 +267,24 @@ class _AddPhotoScreenState extends ConsumerState<AddPhotoScreen> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        AppButton(
-                          label: 'Camera',
-                          icon: Icons.camera_alt_rounded,
-                          variant: AppButtonVariant.primary,
-                          onPressed: () => _pickImage(ImageSource.camera),
+                        SizedBox(
+                          width: 140,
+                          child: AppButton(
+                            label: 'Camera',
+                            icon: Icons.camera_alt_rounded,
+                            variant: AppButtonVariant.primary,
+                            onPressed: () => _pickImage(ImageSource.camera),
+                          ),
                         ),
                         const SizedBox(width: AppDimensions.md),
-                        AppButton(
-                          label: 'Gallery',
-                          icon: Icons.photo_library_rounded,
-                          variant: AppButtonVariant.secondary,
-                          onPressed: () => _pickImage(ImageSource.gallery),
+                        SizedBox(
+                          width: 140,
+                          child: AppButton(
+                            label: 'Gallery',
+                            icon: Icons.photo_library_rounded,
+                            variant: AppButtonVariant.secondary,
+                            onPressed: () => _pickImage(ImageSource.gallery),
+                          ),
                         ),
                       ],
                     ),
@@ -278,7 +310,7 @@ class _AddPhotoScreenState extends ConsumerState<AddPhotoScreen> {
                       right: 10,
                       child: Container(
                         decoration: BoxDecoration(
-                          color: Colors.black.withValues(alpha: 0.7),
+                          color: Colors.black.withOpacity(0.7),
                           borderRadius: AppDimensions.roundedSm,
                         ),
                         child: Row(
@@ -407,7 +439,7 @@ class _AddPhotoScreenState extends ConsumerState<AddPhotoScreen> {
                     label: 'Upload Photo',
                     variant: AppButtonVariant.primary,
                     isLoading: _isUploading,
-                    onPressed: _uploadPhoto,
+                    onPressed: () => _uploadPhoto(patient),
                     icon: Icons.cloud_upload_outlined,
                   ),
                 ),
